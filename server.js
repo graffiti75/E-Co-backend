@@ -74,9 +74,13 @@ const authMiddleware = (req, res, next) => {
 };
 
 // Simple Test Route
-app.get("/test", (req, res) => {
+app.get("/api/test", (req, res) => {
 	log("Test endpoint hit");
 	res.send("Test OK");
+});
+
+app.get("/api/banana", (req, res) => {
+	res.send("My favourite fruit it banana!");
 });
 
 // Register Route
