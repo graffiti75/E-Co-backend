@@ -54,7 +54,8 @@ const CartItem = require("./models/CartItem");
 
 // Middleware to verify JWT
 const authMiddleware = (req, res, next) => {
-	log("server.js -> authMiddleware");
+	// log(`server.js -> authMiddleware -> next: ${next}`);
+	log(`server.js -> authMiddleware`);
 	const token = req.header("Authorization")?.replace("Bearer ", "");
 	if (!token) {
 		log("server.js -> authMiddleware -> No token provided");
@@ -80,25 +81,25 @@ app.get("/api/test", (req, res) => {
 });
 
 app.get("/api/banana", (req, res) => {
-	res.send("My favourite fruit it banana!");
+	res.send("My favourite fruit is banana!");
 });
 
 // Register Route
 app.post("/api/register", async (req, res) => {
-	log("server.js -> post(/api/register) -> Register request:", req.body);
+	log("server.js -> POST /api/register -> Register request:", req.body);
 	const { username, email, password } = req.body;
 	log(
-		`server.js -> post(/api/register) -> username: ${username}, email: ${email}, password: ${password}`
+		`server.js -> POST /api/register -> username: ${username}, email: ${email}, password: ${password}`
 	);
 	if (!username || !email || !password) {
 		log(
-			"server.js -> post(/api/register) -> Validation error: Missing fields"
+			"server.js -> POST /api/register -> Validation error: Missing fields"
 		);
 		return res.status(400).json({ error: "All fields are required" });
 	}
 	if (password.length < 6) {
 		log(
-			"server.js -> post(/api/register) -> Validation error: Password too short"
+			"server.js -> POST /api/register -> Validation error: Password too short"
 		);
 		return res
 			.status(400)
@@ -108,7 +109,7 @@ app.post("/api/register", async (req, res) => {
 		const existingUser = await User.findOne({ email });
 		if (existingUser) {
 			log(
-				"server.js -> post(/api/register) -> Error: Email already exists",
+				"server.js -> POST /api/register -> Error: Email already exists",
 				email
 			);
 			return res.status(400).json({ error: "Email already exists" });
@@ -121,22 +122,20 @@ app.post("/api/register", async (req, res) => {
 		});
 		res.status(201).json({ token, user: { username, email } });
 	} catch (err) {
-		loge("server.js -> post(/api/register) -> Register error:", err);
+		loge("server.js -> POST /api/register -> Register error:", err);
 		res.status(500).json({ error: "Server error" });
 	}
 });
 
 // Login Route
 app.post("/api/login", async (req, res) => {
-	log("server.js -> post(/api/login) -> Login request:", req.body);
+	log("server.js -> POST /api/login -> Login request:", req.body);
 	const { email, password } = req.body;
 	log(
-		`server.js -> post(/api/login) -> email: ${email}, password: ${password}`
+		`server.js -> POST /api/login -> email: ${email}, password: ${password}`
 	);
 	if (!email || !password) {
-		log(
-			"server.js -> post(/api/login) -> Validation error: Missing fields"
-		);
+		log("server.js -> POST /api/login -> Validation error: Missing fields");
 		return res
 			.status(400)
 			.json({ error: "Email and password are required" });
@@ -144,16 +143,13 @@ app.post("/api/login", async (req, res) => {
 	try {
 		const user = await User.findOne({ email });
 		if (!user) {
-			log(
-				"server.js -> post(/api/login) -> Error: User not found",
-				email
-			);
+			log("server.js -> POST /api/login -> Error: User not found", email);
 			return res.status(400).json({ error: "Invalid credentials" });
 		}
 		const isMatch = await bcrypt.compare(password, user.password);
 		if (!isMatch) {
 			log(
-				"server.js -> post(/api/login) -> Error: Password mismatch",
+				"server.js -> POST /api/login -> Error: Password mismatch",
 				email
 			);
 			return res.status(400).json({ error: "Invalid credentials" });
@@ -161,32 +157,41 @@ app.post("/api/login", async (req, res) => {
 		const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
 			expiresIn: "1h",
 		});
-		log(`server.js -> post(/api/login) -> token: ${token}`);
+		log(`server.js -> POST /api/login -> token: ${token}`);
 		res.json({
 			token,
 			user: { username: user.username, email: user.email },
 		});
 	} catch (err) {
-		loge("server.js -> post(/api/login) -> Login error:", err.message);
+		loge("server.js -> POST /api/login -> Login error:", err.message);
 		res.status(500).json({ error: "Server error" });
 	}
 });
 
 // Product Routes
 app.get("/api/products", async (req, res) => {
-	log("server.js -> get(/api/products)");
+	log("server.js -> GET /api/products");
 	try {
 		const products = await Product.find();
-		log(`server.js -> get(/api/products) -> products: ${products}`);
-		res.json(products);
+		log(`server.js -> GET /api/products -> products: ${products}`);
+		// Transform products to include id field
+		const transformedProducts = products.map((product) => {
+			const productObj = product.toObject();
+			productObj.id = productObj._id; // Add id property based on _id
+			return productObj;
+		});
+		log(
+			`server.js -> GET /api/products -> transformedProducts: ${transformedProducts}`
+		);
+		res.json(transformedProducts);
 	} catch (err) {
-		loge("server.js -> get(/api/products) -> Products error:", err.message);
+		loge("server.js -> GET /api/products -> Products error:", err.message);
 		res.status(500).json({ error: "Server error" });
 	}
 });
 
 app.post("/api/products", async (req, res) => {
-	log("server.js -> post(/api/products)");
+	log("server.js -> POST /api/products");
 	const { name, price, description, imageUrl } = req.body;
 	log(
 		`server.js -> post(/api/products) -> name: ${name}, price: ${price}, description: ${description}, imageUrl: ${imageUrl}`
@@ -200,7 +205,7 @@ app.post("/api/products", async (req, res) => {
 		res.status(201).json(product);
 	} catch (err) {
 		loge(
-			"server.js -> post(/api/products) -> Product create error:",
+			"server.js -> POST /api/products -> Product create error:",
 			err.message
 		);
 		res.status(500).json({ error: "Server error" });
@@ -209,131 +214,161 @@ app.post("/api/products", async (req, res) => {
 
 // Cart Routes
 app.get("/api/cart", authMiddleware, async (req, res) => {
-	log("server.js -> get(/api/cart)");
 	try {
-		const cartItems = await CartItem.find({ userId: req.userId }).populate(
-			"productId"
+		log("server.js -> GET /api/cart -> Fetching cart items");
+		const cartItems = await CartItem.find({ userId: req.userId })
+			.populate("product")
+			.exec();
+		log(`server.js -> GET /api/cart -> Found ${cartItems.length} items`);
+
+		// Clean up invalid cart items
+		const validItems = [];
+		for (const item of cartItems) {
+			if (!item.product || typeof item.product !== "object") {
+				log(
+					`server.js -> GET /api/cart -> Removing invalid cart item: ${item._id}`
+				);
+				await CartItem.deleteOne({ _id: item._id });
+				continue;
+			} else {
+				log(
+					`server.js -> GET /api/cart -> Showing valid cart item: ${JSON.stringify(
+						item,
+						null,
+						2
+					)}`
+				);
+			}
+			validItems.push(item);
+		}
+		log(
+			`server.js -> GET /api/cart -> Found ${validItems.length} valid items`
 		);
-		const validCart = cartItems.filter((item) => item.productId !== null);
-		res.json(validCart);
+		res.json(validItems);
 	} catch (err) {
-		loge("server.js -> get(/api/cart) -> Cart fetch error:", err.message);
-		res.status(500).json({ error: "Server error" });
+		log(
+			`server.js -> GET /api/cart -> Error fetching cart: ${err.message}`
+		);
+		res.status(500).json({ error: "Failed to fetch cart" });
 	}
 });
 
 app.post("/api/cart", authMiddleware, async (req, res) => {
-	log("server.js -> post(/api/cart)");
-	const { productId, quantity } = req.body;
-	log(
-		`server.js -> post(/api/cart) -> productId: ${productId}, quantity: ${quantity}`
-	);
-	if (!productId || !quantity) {
-		return res
-			.status(400)
-			.json({ error: "Product ID and quantity are required" });
-	}
+	log(`server.js -> POST /api/cart -> Request body: ${req.body}`);
 	try {
-		const existingItem = await CartItem.findOne({
-			userId: req.userId,
-			productId,
-		});
-		log(`server.js -> post(/api/cart) -> existingItem: ${existingItem}`);
-		if (existingItem) {
-			existingItem.quantity += quantity;
-			await existingItem.save();
-			res.json(existingItem);
-		} else {
-			const cartItem = new CartItem({
-				userId: req.userId,
-				productId,
-				quantity,
-			});
-			await cartItem.save();
-			res.status(201).json(cartItem);
+		const product = req.body.product;
+		const quantity = req.body.quantity || 1;
+
+		if (!product) {
+			return res.status(400).json({ error: "Product is required" });
 		}
+
+		// Check for existing cart item
+		const existingCartItem = await CartItem.findOne({
+			userId: req.userId,
+			product: product,
+		});
+		if (existingCartItem) {
+			// Update quantity if item exists
+			existingCartItem.quantity += quantity;
+			await existingCartItem.save();
+			const populatedItem = await CartItem.findById(existingCartItem._id)
+				.populate("product")
+				.exec();
+			return res.status(200).json(populatedItem);
+		}
+
+		const newCartItem = new CartItem({
+			userId: req.userId,
+			product: product, // CHANGE back to product
+			quantity,
+		});
+
+		await newCartItem.save();
+
+		// Populate the product details before returning
+		const populatedItem = await CartItem.findById(newCartItem._id)
+			.populate("product")
+			.exec();
+
+		res.status(201).json(populatedItem);
 	} catch (err) {
-		loge("server.js -> post(/api/cart) -> Cart add error:", err.message);
-		res.status(500).json({ error: "Server error" });
+		loge(
+			"server.js -> POST /api/cart -> Failed to add to cart: ",
+			err.message
+		);
+		res.status(500).json({ error: "Failed to add to cart" });
 	}
 });
 
 app.delete("/api/cart", authMiddleware, async (req, res) => {
 	console.log(
-		`server.js -> delete(/api/cart) -> Clearing cart for user ${req.userId}`
+		`server.js -> DELETE /api/cart -> Clearing cart for user ${req.userId}`
 	);
 	try {
 		await CartItem.deleteMany({ userId: req.userId });
 		console.log(
-			`server.js -> delete(/api/cart) -> Cart cleared for user ${req.userId}`
+			`server.js -> DELETE /api/cart -> Cart cleared for user ${req.userId}`
 		);
 		res.json({ message: "Cart cleared" });
 	} catch (err) {
 		const errorMessage = err.message || "Unknown error";
 		console.error(
-			`server.js -> delete(/api/cart) -> Cart clear error: ${errorMessage}`
+			`server.js -> DELETE /api/cart -> Cart clear error: ${errorMessage}`
 		);
 		res.status(500).json({ error: "Server error" });
 	}
 });
 
 app.delete("/api/cart/:id", authMiddleware, async (req, res) => {
-	log(`server.js -> delete(/api/cart/${req.params.id}) -> Starting request`);
-	const { ObjectId } = mongoose.Types;
-	if (!ObjectId.isValid(req.params.id)) {
-		log(
-			`server.js -> delete(/api/cart/${req.params.id}) -> Invalid cart item ID`
-		);
-		return res.status(400).json({ error: "Invalid cart item ID" });
-	}
+	log(`server.js -> DELETE /api/cart/:${req.params.id}`);
 	try {
-		const result = await CartItem.findOneAndDelete({
-			_id: new ObjectId(req.params.id),
+		const cartItem = await CartItem.findOneAndDelete({
+			_id: req.params.id,
 			userId: req.userId,
 		});
-		if (!result) {
-			log(
-				`server.js -> delete(/api/cart/${req.params.id}) -> Cart item not found`
-			);
+
+		if (!cartItem) {
 			return res.status(404).json({ error: "Cart item not found" });
+		} else {
+			log(
+				`server.js -> DELETE /api/cart/:${
+					req.params.id
+				} -> CartItem ${JSON.stringify(cartItem, null, 2)} deleted!`
+			);
 		}
-		log(`server.js -> delete(/api/cart/${req.params.id}) -> Item removed`);
-		res.json({ message: "Item removed" });
+		res.json({ success: true });
 	} catch (err) {
-		const errorMessage = err.message || "Unknown error";
-		loge(
-			`server.js -> delete(/api/cart/${req.params.id}) -> Cart delete error: ${errorMessage}`
-		);
-		res.status(500).json({ error: "Server error" });
+		log(`server.js -> DELETE /api/cart/:${req.params.id} -> 
+			Failed to remove from cart: ${err.message}`);
+		res.status(500).json({ error: "Failed to remove from cart" });
 	}
 });
 
 app.put("/api/cart/:id", authMiddleware, async (req, res) => {
-	log(`server.js -> put(/api/cart/)`);
-	const { quantity } = req.body;
-	log(`server.js -> put(/api/cart/) -> quantity: ${quantity}`);
-	if (!quantity || quantity < 1) {
-		return res.status(400).json({ error: "Valid quantity is required" });
-	}
+	const headers = `headers: ${JSON.stringify(req.headers)}`;
+	log(
+		`server.js -> PUT /api/cart/:${
+			req.params.id
+		} -> params: ${JSON.stringify(req.params)}, body: ${JSON.stringify(
+			req.body
+		)}, userId: ${req.userId}`
+	);
 	try {
+		const { quantity } = req.body;
 		const cartItem = await CartItem.findOneAndUpdate(
 			{ _id: req.params.id, userId: req.userId },
 			{ quantity },
 			{ new: true }
-		);
-		log(
-			`server.js -> put(/api/cart/${req.params.id}) -> cartItem: ${cartItem}`
-		);
+		).populate("product");
+
 		if (!cartItem) {
 			return res.status(404).json({ error: "Cart item not found" });
 		}
 		res.json(cartItem);
 	} catch (err) {
-		loge(
-			"server.js -> put(/api/cart/${id}) -> Cart update error:",
-			err.message
-		);
-		res.status(500).json({ error: "Server error" });
+		log(`Failed to update cart: ${err.message}`);
+		res.status(500).json({ error: "Failed to update cart" });
 	}
 });
 
