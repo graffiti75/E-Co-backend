@@ -6,42 +6,58 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 const { log, loge } = require("./utils/logger");
 
-dotenv.config();
+// Load environment-specific .env file
+const env = process.env.NODE_ENV || "testing";
+dotenv.config({ path: `.env.${env}` });
+
 const app = express();
 app.use(cors());
 app.use(express.json());
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGO_URI).then(async () => {
-	log("server.js -> MongoDB connected");
+	log(`server.js -> MongoDB connected (${env})`);
 	// Seed products
 	const Product = require("./models/Product");
 	const existingProducts = await Product.countDocuments();
 	if (existingProducts === 0) {
 		log("server.js -> Seeding initial products...");
-		const initialProducts = [
-			{
-				name: "Laptop",
-				price: 999,
-				description: "High-performance laptop",
-				imageUrl:
-					"https://images.unsplash.com/photo-1611186871348-b1ce696e52c9",
-			},
-			{
-				name: "Phone",
-				price: 499,
-				description: "Latest smartphone",
-				imageUrl:
-					"https://images.unsplash.com/photo-1724438192720-c19a90e24a69",
-			},
-			{
-				name: "Headphones",
-				price: 99,
-				description: "Noise-cancelling headphones",
-				imageUrl:
-					"https://plus.unsplash.com/premium_photo-1679513691474-73102089c117",
-			},
-		];
+		let initialProducts;
+		if (env === "testing") {
+			initialProducts = [
+				{
+					name: "Laptop",
+					price: 999,
+					description: "High-performance laptop",
+					imageUrl:
+						"https://images.unsplash.com/photo-1611186871348-b1ce696e52c9",
+				},
+				{
+					name: "Phone",
+					price: 499,
+					description: "Latest smartphone",
+					imageUrl:
+						"https://images.unsplash.com/photo-1724438192720-c19a90e24a69",
+				},
+				{
+					name: "Headphones",
+					price: 99,
+					description: "Noise-cancelling headphones",
+					imageUrl:
+						"https://plus.unsplash.com/premium_photo-1679513691474-73102089c117",
+				},
+			];
+		} else {
+			initialProducts = [
+				{
+					name: "Bear",
+					price: 19,
+					description: "Harmless bear",
+					imageUrl:
+						"https://encrypted-tbn3.gstatic.com/images?q=tbn:ANd9GcS94vcuH1kxbqicN2lz6k3z80o4_xnxUAqJ42ieTPGAG-qAm6LWs0Ah5dw9B49NAatYrKyH-wRBNaqXAmPCPut5vA",
+				},
+			];
+		}
 		await Product.insertMany(initialProducts);
 		log("server.js -> Initial products seeded");
 	}

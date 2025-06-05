@@ -3,9 +3,10 @@
 	"version": "1.0.0",
 	"main": "index.js",
 	"scripts": {
-		"test": "echo \"Error: no test specified\" && exit 1",
-		"start": "node server.js",
-		"dev": "nodemon server.js"
+		"start": "NODE_ENV=production node server.js",
+    	"dev": "NODE_ENV=testing nodemon server.js",
+    	"start:staging": "NODE_ENV=staging node server.js",
+		"start:testing": "NODE_ENV=testing node server.js"
 	},
 	"keywords": [],
 	"author": "",
